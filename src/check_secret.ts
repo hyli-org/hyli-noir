@@ -4,6 +4,42 @@ import { CompiledCircuit, InputMap } from "@noir-lang/types";
 import { Blob, ProofTransaction, NodeApiHttpClient } from "hyli";
 
 /**
+ * Hashes a password using SHA-256.
+ * The password is converted to a Uint8Array and hashed using SHA-256.
+ * The resulting hash is returned as a Uint8Array.
+ *
+ * @param password - The password string to hash
+ * @returns A Promise resolving to the Uint8Array of the computed hash
+ */
+export const hash_password = async (password: string): Promise<Uint8Array> => {
+  const hashed_password_bytes = await sha256(stringToBytes(password));
+  return hashed_password_bytes;
+};
+
+/**
+ * Hashes an identity and password together using SHA-256.
+ * The identity is concatenated with ':' and the hashed password.
+ * The resulting combined value is hashed again using SHA-256.
+ * The resulting hash is returned as a hexadecimal string that can be 
+ * stored publicly.
+ * 
+ * This function is mainly used to check the given password against a stored hash.
+ *
+ * @param identity - The user's identity string
+ * @param password - The user's password string
+ * @returns A Promise resolving to the hexadecimal string of the computed hash
+ */
+export const identity_hash = async (identity: string, password: string): Promise<string> => {
+  const hashed_password_bytes = await sha256(stringToBytes(password));
+  let encoder = new TextEncoder();
+  let id_prefix = encoder.encode(`${identity}:`);
+  let extended_id = new Uint8Array([...id_prefix, ...hashed_password_bytes]);
+  const computed_hash = await sha256(extended_id);
+  const computed_hash_hex = Buffer.from(computed_hash).toString("hex");
+  return computed_hash_hex;
+};
+
+/**
  * Builds a blob transaction containing a secret derived from an identity and password.
  * The secret is constructed by:
  * 1. Hashing the password in order to have a fixed-size secret
@@ -14,10 +50,7 @@ import { Blob, ProofTransaction, NodeApiHttpClient } from "hyli";
  * @param password - The user's password string
  * @returns A Promise resolving to a BlobTransaction containing the hashed secret
  */
-export const build_blob = async (
-  identity: string,
-  password: string,
-): Promise<Blob> => {
+export const build_blob = async (identity: string, password: string): Promise<Blob> => {
   const hashed_password_bytes = await sha256(stringToBytes(password));
   let encoder = new TextEncoder();
   let id_prefix = encoder.encode(`${identity}:`);
@@ -67,21 +100,11 @@ export const build_proof_transaction = async (
   const stored_hash = await sha256(extended_id);
 
   const { witness } = await noir.execute(
-    generateProverData(
-      identity,
-      hashed_password_bytes,
-      stored_hash,
-      tx_hash,
-      blob_index,
-      tx_blob_count,
-    ),
+    generateProverData(identity, hashed_password_bytes, stored_hash, tx_hash, blob_index, tx_blob_count),
   );
 
   const proof = await backend.generateProof(witness);
-  const reconstructedProof = reconstructHonkProof(
-    flattenFieldsAsArray(proof.publicInputs),
-    proof.proof,
-  );
+  const reconstructedProof = reconstructHonkProof(flattenFieldsAsArray(proof.publicInputs), proof.proof);
 
   return {
     contract_name: "check_secret",

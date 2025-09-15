@@ -1,9 +1,16 @@
 {
   "name": "hyli-noir",
   "description": "A library of noir programs used by Hyli.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyli-org/hyli-noir.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hyli-org/hyli-noir/issues"
+  },
   "author": "Hyli",
   "license": "MIT",
-  "version": "0.4.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/hyli-noir.cjs.js",
   "module": "dist/hyli-noir.es.js",
@@ -24,7 +31,7 @@
   "scripts": {
     "dev": "vite",
     "build": "rm -rf dist && vite build && tsc && tsc-alias",
-    "prepublishOnly": "bun run build && bun run build:lib",
+    "prepublishOnly": "bun run build",
     "pub": "npm publish"
   },
   "peerDependencies": {
