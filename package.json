@@ -1,0 +1,46 @@
+{
+  "name": "hyli-noir",
+  "description": "A library of noir programs used by Hyli.",
+  "author": "Hyli",
+  "license": "MIT",
+  "version": "0.4.1",
+  "type": "module",
+  "main": "dist/hyli-noir.cjs.js",
+  "module": "dist/hyli-noir.es.js",
+  "exports": {
+    "import": {
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/hyli-noir.es.js"
+    },
+    "require": {
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/hyli-noir.cjs.js"
+    }
+  },
+  "types": "dist/lib.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "rm -rf dist && vite build && tsc && tsc-alias",
+    "prepublishOnly": "bun run build && bun run build:lib",
+    "pub": "npm publish"
+  },
+  "peerDependencies": {
+    "@aztec/bb.js": "0.82.2",
+    "@noir-lang/noir_js": "1.0.0-beta.2",
+    "@noir-lang/noir_wasm": "1.0.0-beta.2"
+  },
+  "dependencies": {
+    "hyli": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.14",
+    "tsc-alias": "^1.8.16",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-bundle-analyzer": "^0.21.0"
+  }
+}
