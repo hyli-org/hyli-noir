@@ -20,9 +20,9 @@ export const hash_password = async (password: string): Promise<Uint8Array> => {
  * Hashes an identity and password together using SHA-256.
  * The identity is concatenated with ':' and the hashed password.
  * The resulting combined value is hashed again using SHA-256.
- * The resulting hash is returned as a hexadecimal string that can be 
+ * The resulting hash is returned as a hexadecimal string that can be
  * stored publicly.
- * 
+ *
  * This function is mainly used to check the given password against a stored hash.
  *
  * @param identity - The user's identity string
@@ -66,6 +66,7 @@ export const build_blob = async (identity: string, password: string): Promise<Bl
 };
 
 import defaultCircuit from "../check-secret/target/check_secret.json";
+import { assert, flattenFieldsAsArray, sha256, stringToBytes } from "./common";
 
 /**
  * Builds a proof transaction by generating a zero-knowledge proof for checking a secret.
@@ -140,64 +141,6 @@ export const register_contract = async (
     });
   });
 };
-
-// ---- Utility functions ----
-
-export const assert = (condition: boolean, message: string): void => {
-  if (!condition) {
-    throw new Error(message);
-  }
-};
-
-export const sha256 = async (data: Uint8Array): Promise<Uint8Array> => {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return new Uint8Array(hashBuffer);
-};
-
-export const stringToBytes = (input: string): Uint8Array => {
-  return new TextEncoder().encode(input);
-};
-
-export const encodeToHex = (data: Uint8Array): string => {
-  return Array.from(data)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-};
-
-export function flattenFieldsAsArray(fields: string[]): Uint8Array {
-  const flattenedPublicInputs = fields.map(hexToUint8Array);
-  return flattenUint8Arrays(flattenedPublicInputs);
-}
-
-function flattenUint8Arrays(arrays: Uint8Array[]): Uint8Array {
-  const totalLength = arrays.reduce((acc, val) => acc + val.length, 0);
-  const result = new Uint8Array(totalLength);
-
-  let offset = 0;
-  for (const arr of arrays) {
-    result.set(arr, offset);
-    offset += arr.length;
-  }
-
-  return result;
-}
-
-function hexToUint8Array(hex: string): Uint8Array {
-  const sanitisedHex = BigInt(hex).toString(16).padStart(64, "0");
-
-  const len = sanitisedHex.length / 2;
-  const u8 = new Uint8Array(len);
-
-  let i = 0;
-  let j = 0;
-  while (i < len) {
-    u8[i] = parseInt(sanitisedHex.slice(j, j + 2), 16);
-    i += 1;
-    j += 2;
-  }
-
-  return u8;
-}
 
 /**
  * Generates the prover data required for the Noir circuit.
