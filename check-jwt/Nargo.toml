@@ -1,5 +1,5 @@
 [package]
-name = "check-jwt"
+name = "check_jwt"
 type = "bin"
 authors = [""]
 
