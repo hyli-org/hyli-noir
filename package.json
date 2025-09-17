@@ -10,7 +10,7 @@
   },
   "author": "Hyli",
   "license": "MIT",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "dist/hyli-noir.cjs.js",
   "module": "dist/hyli-noir.es.js",
@@ -40,7 +40,8 @@
     "@noir-lang/noir_wasm": "1.0.0-beta.2"
   },
   "dependencies": {
-    "hyli": "^0.4.0"
+    "hyli": "^0.4.0",
+    "noir-jwt": "^0.4.5"
   },
   "devDependencies": {
     "@types/bun": "^1.2.14",

@@ -140,7 +140,22 @@ The library implements a zero-knowledge proof system for secret verification:
 
 ## Development
 
-### Building
+### Building Noir contract
+
+In `./check-jwt/`  folder if `./Prover.toml` is present and well constructed
+
+```bash
+nargo execute
+```
+It builds and executes the circuit.
+
+In `./check-secret/`, to build without executing do
+
+```bash
+nargo build
+```
+
+### Building library
 
 ```bash
 bun run build
