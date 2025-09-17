@@ -3,7 +3,7 @@ import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js";
 import defaultCircuit from "../check-jwt/target/check_jwt.json";
 import { assert, b64urlToU8, bytesToBigInt, flattenFieldsAsArray } from "./common";
 import { generateInputs } from "noir-jwt";
-import { Blob } from "hyli";
+import { Blob, NodeApiHttpClient } from "hyli";
 
 export const contract_name = "check_jwt";
 
@@ -23,25 +23,16 @@ export const contract_name = "check_jwt";
  * @returns {Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }>}
  * An object containing verifier details and the generated proof.
  */
-export const build_proof_transaction = async ({
-  identity,
-  stored_hash,
-  tx,
-  blob_index,
-  tx_blob_count,
-  idToken,
-  jwtPubkey,
-  circuit = defaultCircuit as CompiledCircuit,
-}: {
-  identity: string;
-  stored_hash: number[];
-  tx: string;
-  blob_index: number;
-  tx_blob_count: number;
-  idToken: string;
-  jwtPubkey: JsonWebKey;
-  circuit: CompiledCircuit;
-}): Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }> => {
+export const build_proof_transaction = async (
+  identity: string,
+  stored_hash: number[],
+  tx: string,
+  blob_index: number,
+  tx_blob_count: number,
+  idToken: string,
+  jwtPubkey: JsonWebKey,
+  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit,
+): Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }> => {
   if (!idToken || !jwtPubkey) {
     throw new Error("[JWT Circuit] Proof generation failed: idToken and jwtPubkey are required");
   }
@@ -184,25 +175,34 @@ export const extract_jwt_claims = (jwt: string): { email: string; nonce: string;
 };
 
 /**
- * Builds a blob representing a JWT, used for proof generation in the circuit.
+ * Registers the Noir contract with the node if it is not already registered.
+ * The contract is identified by its name "check_secret".
+ * If the contract is not found, it registers the contract using the provided circuit.
  *
- * @param {Uint8Array} mail_hash - The hashed email value.
- * @param {string} nonce - The nonce value from the JWT.
- * @param {string} pubkey - The public key (base64url encoded).
- * @returns {Blob} A structured Blob object containing the JWT data.
+ * @param node - The NodeApiHttpClient instance to interact with the NodeApiHttpClient
+ * @returns A Promise that resolves when the contract is registered
  */
-export const build_blob = (mail_hash: Uint8Array, nonce: string, pubkey: string): Blob => {
-  let encoded = Uint8Array.from(`${nonce}`, (c) => c.charCodeAt(0));
-  let remaining_len = 16 - encoded.length;
+export const register_contract = async (
+  node: NodeApiHttpClient,
+  circuit = defaultCircuit as CompiledCircuit,
+): Promise<undefined | number[]> => {
+  return await node
+    .getContract(contract_name)
+    .then(() => undefined)
+    .catch(async () => {
+      const backend = new UltraHonkBackend(circuit.bytecode);
 
-  let zeros = new Array(remaining_len).fill(0);
+      const vk = await backend.getVerificationKey();
+      const contract = {
+        verifier: "noir",
+        program_id: Array.from(vk),
+        state_commitment: [0, 0, 0, 0],
+        contract_name,
+      };
 
-  const jwtBlob: Blob = {
-    contract_name,
-    data: [...mail_hash, 58, ...encoded, ...zeros, 58, ...b64urlToU8(pubkey).reverse()],
-  };
-
-  return jwtBlob;
+      await node.registerContract(contract);
+      return contract.program_id;
+    });
 };
 
 /**
@@ -214,4 +214,59 @@ export const build_blob = (mail_hash: Uint8Array, nonce: string, pubkey: string)
 export const poseidon_hash = async (string: string): Promise<Fr> => {
   const bb = await Barretenberg.new();
   return await bb.poseidon2Hash([new Fr(bytesToBigInt(new TextEncoder().encode(string)))]);
+};
+
+export const build_blob_from_jwt = async <T extends { kid: string } & JsonWebKey>(
+  jwt: string,
+  keys: T[],
+): Promise<{ blob: Blob; nonce: number; mail_hash: number[]; pubkey: JsonWebKey }> => {
+  const { email, nonce, kid } = extract_jwt_claims(jwt);
+
+  if (!email || !nonce || !kid) {
+    const error = "Invalid Google token: missing email, nonce, or kid";
+    throw new Error(error);
+  }
+
+  const pubkey: JsonWebKey | undefined = keys.find((key) => key.kid == kid);
+  if (!pubkey) {
+    throw new Error(`Google public key with id ${kid} not found`);
+  }
+
+  const nonce_int = parseInt(nonce, 10);
+  const hash = await build_stored_hash(email, nonce_int, pubkey.n as string);
+
+  return {
+    nonce: nonce_int,
+    mail_hash: hash.mail_hash,
+    pubkey,
+    blob: {
+      contract_name,
+      data: hash.stored_hash,
+    },
+  };
+};
+
+/**
+ * Builds a blob representing a JWT, used for proof generation in the circuit.
+ *
+ * @param {Uint8Array} email - The hashed email value.
+ * @param {string} nonce - The nonce value from the JWT.
+ * @param {string} pubkey - The public key (base64url encoded).
+ * @returns {Blob} A structured Blob object containing the JWT data.
+ */
+export const build_stored_hash = async (
+  email: string,
+  nonce: number,
+  pubkey: string,
+): Promise<{ mail_hash: number[]; stored_hash: number[] }> => {
+  const mail_hash: Fr = await poseidon_hash(email);
+  let encoded = Uint8Array.from(`${nonce}`, (c) => c.charCodeAt(0));
+  let remaining_len = 16 - encoded.length;
+
+  let zeros = new Array(remaining_len).fill(0);
+
+  return {
+    mail_hash: Array.from(mail_hash.value),
+    stored_hash: [...mail_hash.value, 58, ...encoded, ...zeros, 58, ...b64urlToU8(pubkey).reverse()],
+  };
 };
