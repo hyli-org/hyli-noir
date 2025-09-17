@@ -1,10 +1,28 @@
 import { Barretenberg, Fr, reconstructHonkProof, UltraHonkBackend } from "@aztec/bb.js";
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js";
-import defaultCircuit from "../check-jwt/target/check-jwt.json";
+import defaultCircuit from "../check-jwt/target/check_jwt.json";
 import { assert, b64urlToU8, bytesToBigInt, flattenFieldsAsArray } from "./common";
 import { generateInputs } from "noir-jwt";
 import { Blob } from "hyli";
 
+export const contract_name = "check_jwt";
+
+/**
+ * Generates a cryptographic proof for a transaction using a JWT circuit.
+ *
+ * @param {Object} params - Parameters required for proof generation.
+ * @param {string} params.identity - The user's identity string.
+ * @param {number[]} params.stored_hash - The precomputed/stored hash.
+ * @param {string} params.tx - The transaction identifier or hash.
+ * @param {number} params.blob_index - The index of the blob within the transaction.
+ * @param {number} params.tx_blob_count - The total number of blobs in the transaction.
+ * @param {string} params.idToken - The signed JWT token.
+ * @param {JsonWebKey} params.jwtPubkey - The JWT public key in JWK format.
+ * @param {CompiledCircuit} params.circuit - The compiled circuit to execute (defaults to check-jwt).
+ *
+ * @returns {Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }>}
+ * An object containing verifier details and the generated proof.
+ */
 export const build_proof_transaction = async ({
   identity,
   stored_hash,
@@ -23,7 +41,7 @@ export const build_proof_transaction = async ({
   idToken: string;
   jwtPubkey: JsonWebKey;
   circuit: CompiledCircuit;
-}) => {
+}): Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }> => {
   if (!idToken || !jwtPubkey) {
     throw new Error("[JWT Circuit] Proof generation failed: idToken and jwtPubkey are required");
   }
@@ -62,15 +80,20 @@ export const build_proof_transaction = async ({
   console.log(`Proof generated in ${provingTime}ms`);
 
   return {
-    contract_name: "check_jwt",
+    contract_name,
     program_id: Array.from(vk),
     verifier: "noir",
     proof: Array.from(reconstructedProof),
   };
 };
 
-export async function jwk_pubkey_mod(jwk: JsonWebKey) {
-  // Parse pubkeyJWK
+/**
+ * Extracts and computes the modulus (n) from a JWK public key.
+ *
+ * @param {JsonWebKey} jwk - The public key in JWK format.
+ * @returns {Promise<bigint>} The modulus of the public key as a BigInt.
+ */
+export async function jwk_pubkey_mod(jwk: JsonWebKey): Promise<bigint> {
   const publicKey = await crypto.subtle.importKey(
     "jwk",
     jwk,
@@ -88,6 +111,17 @@ export async function jwk_pubkey_mod(jwk: JsonWebKey) {
   return modulusBigInt;
 }
 
+/**
+ * Generates prover input data used to feed the zero-knowledge circuit.
+ *
+ * @param {string} id - User identity string.
+ * @param {number[]} stored_hash - Stored hash array.
+ * @param {string} tx_hash - Transaction hash.
+ * @param {number} blob_index - Index of the blob in the transaction.
+ * @param {number} tx_blob_count - Total number of blobs in the transaction.
+ *
+ * @returns {InputMap} Structured input data for the prover.
+ */
 const generateProverData = (id: string, stored_hash: number[], tx_hash: string, blob_index: number, tx_blob_count: number): InputMap => {
   const version = 1;
   const initial_state = [0, 0, 0, 0];
@@ -100,8 +134,8 @@ const generateProverData = (id: string, stored_hash: number[], tx_hash: string, 
   const tx_hash_len = tx_hash.length;
   const index = blob_index;
   const blob_number = 1;
-  const blob_contract_name_len = "check_jwt".length;
-  const blob_contract_name = "check_jwt".padEnd(256, "0");
+  const blob_contract_name_len = contract_name.length;
+  const blob_contract_name = contract_name.padEnd(256, "0");
   const blob_capacity = 306;
   const blob_len = 306;
   const blob: number[] = stored_hash;
@@ -131,6 +165,13 @@ const generateProverData = (id: string, stored_hash: number[], tx_hash: string, 
   };
 };
 
+/**
+ * Extracts specific claims from a JWT.
+ *
+ * @param {string} jwt - A JWT string in the format header.payload.signature.
+ * @returns {{ email: string; nonce: string; kid: string }}
+ * An object containing the email, nonce, and key ID (kid).
+ */
 export const extract_jwt_claims = (jwt: string): { email: string; nonce: string; kid: string } => {
   const [header, payload] = jwt.split(".");
   const headers = JSON.parse(atob(header));
@@ -142,6 +183,14 @@ export const extract_jwt_claims = (jwt: string): { email: string; nonce: string;
   return { email, nonce, kid };
 };
 
+/**
+ * Builds a blob representing a JWT, used for proof generation in the circuit.
+ *
+ * @param {Uint8Array} mail_hash - The hashed email value.
+ * @param {string} nonce - The nonce value from the JWT.
+ * @param {string} pubkey - The public key (base64url encoded).
+ * @returns {Blob} A structured Blob object containing the JWT data.
+ */
 export const build_blob = (mail_hash: Uint8Array, nonce: string, pubkey: string): Blob => {
   let encoded = Uint8Array.from(`${nonce}`, (c) => c.charCodeAt(0));
   let remaining_len = 16 - encoded.length;
@@ -149,14 +198,20 @@ export const build_blob = (mail_hash: Uint8Array, nonce: string, pubkey: string)
   let zeros = new Array(remaining_len).fill(0);
 
   const jwtBlob: Blob = {
-    contract_name: "check_jwt",
+    contract_name,
     data: [...mail_hash, 58, ...encoded, ...zeros, 58, ...b64urlToU8(pubkey).reverse()],
   };
 
   return jwtBlob;
 };
 
-export const poseidon_hash = async (string: string) => {
+/**
+ * Computes the Poseidon2 hash of a string.
+ *
+ * @param {string} string - The input string to be hashed.
+ * @returns {Promise<Fr>} The Poseidon2 hash result.
+ */
+export const poseidon_hash = async (string: string): Promise<Fr> => {
   const bb = await Barretenberg.new();
   return await bb.poseidon2Hash([new Fr(bytesToBigInt(new TextEncoder().encode(string)))]);
 };
