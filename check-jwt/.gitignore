@@ -1,2 +1,2 @@
 target/*
-!target/check_secret.json
+!target/check_jwt.json
