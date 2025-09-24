@@ -10,7 +10,7 @@
   },
   "author": "Hyli",
   "license": "MIT",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "type": "module",
   "main": "dist/hyli-noir.cjs.js",
   "module": "dist/hyli-noir.es.js",

@@ -35,7 +35,7 @@ export const identity_hash = async (identity: string, password: string): Promise
   let id_prefix = encoder.encode(`${identity}:`);
   let extended_id = new Uint8Array([...id_prefix, ...hashed_password_bytes]);
   const computed_hash = await sha256(extended_id);
-  const computed_hash_hex = Buffer.from(computed_hash).toString("hex");
+  const computed_hash_hex = encodeToHex(computed_hash);
   return computed_hash_hex;
 };
 
@@ -66,7 +66,7 @@ export const build_blob = async (identity: string, password: string): Promise<Bl
 };
 
 import defaultCircuit from "../check-secret/target/check_secret.json";
-import { assert, flattenFieldsAsArray, sha256, stringToBytes } from "./common";
+import { assert, encodeToHex, flattenFieldsAsArray, sha256, stringToBytes } from "./common";
 
 /**
  * Builds a proof transaction by generating a zero-knowledge proof for checking a secret.
@@ -88,7 +88,7 @@ export const build_proof_transaction = async (
   tx_hash: string,
   blob_index: number,
   tx_blob_count: number,
-  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit,
+  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit
 ): Promise<ProofTransaction> => {
   const noir = new Noir(circuit);
   const backend = new UltraHonkBackend(circuit.bytecode);
@@ -101,7 +101,7 @@ export const build_proof_transaction = async (
   const stored_hash = await sha256(extended_id);
 
   const { witness } = await noir.execute(
-    generateProverData(identity, hashed_password_bytes, stored_hash, tx_hash, blob_index, tx_blob_count),
+    generateProverData(identity, hashed_password_bytes, stored_hash, tx_hash, blob_index, tx_blob_count)
   );
 
   const proof = await backend.generateProof(witness);
@@ -126,7 +126,7 @@ export const build_proof_transaction = async (
  */
 export const register_contract = async (
   node: NodeApiHttpClient,
-  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit,
+  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit
 ): Promise<void> => {
   await node.getContract("check_secret").catch(async () => {
     const backend = new UltraHonkBackend(circuit.bytecode);
@@ -157,7 +157,7 @@ const generateProverData = (
   stored_hash: Uint8Array,
   tx: string,
   blob_index: number,
-  tx_blob_count: number,
+  tx_blob_count: number
 ): InputMap => {
   const version = 1;
   const initial_state = [0, 0, 0, 0];
