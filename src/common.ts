@@ -7,6 +7,7 @@ export const assert = (condition: boolean, message: string): void => {
 };
 
 export const sha256 = async (data: Uint8Array): Promise<Uint8Array> => {
+  // @ts-expect-error
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   return new Uint8Array(hashBuffer);
 };

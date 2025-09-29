@@ -10,7 +10,7 @@
   },
   "author": "Hyli",
   "license": "MIT",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "type": "module",
   "main": "dist/hyli-noir.cjs.js",
   "module": "dist/hyli-noir.es.js",
@@ -35,20 +35,20 @@
     "pub": "npm publish"
   },
   "peerDependencies": {
-    "@aztec/bb.js": "0.82.2",
-    "@noir-lang/noir_js": "1.0.0-beta.2",
-    "@noir-lang/noir_wasm": "1.0.0-beta.2"
+    "@aztec/bb.js": "0.87.9",
+    "@noir-lang/noir_js": "1.0.0-beta.11",
+    "@noir-lang/noir_wasm": "1.0.0-beta.11"
   },
   "dependencies": {
-    "hyli": "^0.4.0",
+    "hyli": "^0.4.1",
     "noir-jwt": "^0.4.5"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.14",
+    "@types/bun": "^1.2.23",
     "tsc-alias": "^1.8.16",
     "esbuild": "^0.20.2",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.6",
     "vite-bundle-analyzer": "^0.21.0"
   }
 }
