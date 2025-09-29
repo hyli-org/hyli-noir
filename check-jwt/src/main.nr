@@ -127,7 +127,7 @@ fn u128_to_bytes(x: u128) -> [u8; 16] {
     for i in 0..16 {
         let shifted: u128 = x >> (i * 8);
         // On garde uniquement les 8 bits de poids faible
-        out[i] = (shifted & 0xff) as u8;
+        out[i as u32] = (shifted & 0xff) as u8;
     }
 
     out

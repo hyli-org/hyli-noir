@@ -31,7 +31,7 @@ export const build_proof_transaction = async (
   tx_blob_count: number,
   idToken: string,
   jwtPubkey: JsonWebKey,
-  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit,
+  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit
 ): Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }> => {
   if (!idToken || !jwtPubkey) {
     throw new Error("[JWT Circuit] Proof generation failed: idToken and jwtPubkey are required");
@@ -93,11 +93,12 @@ export async function jwk_pubkey_mod(jwk: JsonWebKey): Promise<bigint> {
       hash: "SHA-256",
     },
     true,
-    ["verify"],
+    ["verify"]
   );
 
   const publicKeyJWK = await crypto.subtle.exportKey("jwk", publicKey);
-  const modulusBigInt = BigInt("0x" + Buffer.from(publicKeyJWK.n as string, "base64").toString("hex"));
+  const modulusBytes = b64urlToU8(publicKeyJWK.n as string);
+  const modulusBigInt = bytesToBigInt(modulusBytes);
 
   return modulusBigInt;
 }
@@ -184,7 +185,7 @@ export const extract_jwt_claims = (jwt: string): { email: string; nonce: string;
  */
 export const register_contract = async (
   node: NodeApiHttpClient,
-  circuit = defaultCircuit as CompiledCircuit,
+  circuit = defaultCircuit as CompiledCircuit
 ): Promise<undefined | number[]> => {
   return await node
     .getContract(contract_name)
@@ -218,7 +219,7 @@ export const poseidon_hash = async (string: string): Promise<Fr> => {
 
 export const build_blob_from_jwt = async <T extends { kid: string } & JsonWebKey>(
   jwt: string,
-  keys: T[],
+  keys: T[]
 ): Promise<{ blob: Blob; nonce: number; mail_hash: number[]; pubkey: JsonWebKey }> => {
   const { email, nonce, kid } = extract_jwt_claims(jwt);
 
@@ -257,7 +258,7 @@ export const build_blob_from_jwt = async <T extends { kid: string } & JsonWebKey
 export const build_stored_hash = async (
   email: string,
   nonce: number,
-  pubkey: string,
+  pubkey: string
 ): Promise<{ mail_hash: number[]; stored_hash: number[] }> => {
   const mail_hash: Fr = await poseidon_hash(email);
   let encoded = Uint8Array.from(`${nonce}`, (c) => c.charCodeAt(0));
