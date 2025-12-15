@@ -310,7 +310,7 @@ const data = {
     "105",
     "232",
   ],
-  blob_capacity: "306",
+  blob_capacity: "512",
   blob_contract_name:
     "check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456",
   blob_contract_name_len: "10",
@@ -1039,16 +1039,33 @@ const data = {
   },
 };
 
-import defaultCircuit from "../check-jwt/target/check_jwt.json";
-import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js";
+import defaultCircuit from "../target/check_jwt.json";
+import { CompiledCircuit } from "@noir-lang/noir_js";
 
-const backend = new UltraHonkBackend(defaultCircuit.bytecode);
-const vk = await backend.getVerificationKey();
-const noir = new Noir(defaultCircuit as CompiledCircuit);
+const stored_hash = data.blob.map((b) => Number(b));
+const identity = data.identity.slice(0, Number(data.identity_len));
 
-// Generate witness and prove
-const startTime = performance.now();
-const { witness } = await noir.execute(data as InputMap);
+const jwtInputsOverride = {
+  partial_data: {
+    len: Number(data.partial_data.len),
+    storage: data.partial_data.storage.map((value) => Number(value)),
+  },
+  partial_hash: data.partial_hash.map((value) => Number(value)),
+  full_data_length: Number(data.full_data_length),
+  base64_decode_offset: Number(data.base64_decode_offset),
+  pubkey_modulus_limbs: data.jwt_pubkey_modulus_limbs,
+  redc_params_limbs: data.jwt_pubkey_redc_params_limbs,
+  signature_limbs: data.jwt_signature_limbs,
+};
 
-const proof = await backend.generateProof(witness);
-const provingTime = performance.now() - startTime;
+await check_jwt.build_proof_transaction(
+  identity,
+  stored_hash,
+  data.tx_hash,
+  Number(data.blob_index),
+  Number(data.tx_blob_count),
+  "dummy.token",
+  { n: "dummy", e: "AQAB", kty: "RSA" },
+  defaultCircuit as CompiledCircuit,
+  jwtInputsOverride
+);

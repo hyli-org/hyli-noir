@@ -57,15 +57,20 @@ export const build_blob = async (identity: string, password: string): Promise<Bl
   let extended_id = new Uint8Array([...id_prefix, ...hashed_password_bytes]);
   const stored_hash = await sha256(extended_id);
 
+  const padded_blob = new Array(32).fill(0);
+  for (let i = 0; i < stored_hash.length; i++) {
+    padded_blob[i] = stored_hash[i];
+  }
+
   const secretBlob: Blob = {
     contract_name: "check_secret",
-    data: Array.from(stored_hash),
+    data: padded_blob,
   };
 
   return secretBlob;
 };
 
-import defaultCircuit from "../check-secret/target/check_secret.json";
+import defaultCircuit from "../target/check_secret.json";
 import { assert, encodeToHex, flattenFieldsAsArray, sha256, stringToBytes } from "./common";
 
 /**
@@ -159,47 +164,34 @@ const generateProverData = (
   blob_index: number,
   tx_blob_count: number
 ): InputMap => {
-  const version = 1;
-  const initial_state = [0, 0, 0, 0];
-  const initial_state_len = initial_state.length;
-  const next_state = [0, 0, 0, 0];
-  const next_state_len = next_state.length;
-  const identity_len = id.length;
-  const identity = id.padEnd(256, "0");
-  const tx_hash = tx.padEnd(64, "0");
-  const tx_hash_len = tx_hash.length;
-  const index = blob_index;
-  const blob_number = 1;
-  const blob_contract_name_len = "check_secret".length;
-  const blob_contract_name = "check_secret".padEnd(256, "0");
-  const blob_capacity = 32;
-  const blob_len = 32;
-  const blob: number[] = Array.from(stored_hash);
-  const success = 1;
+  const hyli_output = {
+    version: 1,
+    initial_state: [0, 0, 0, 0],
+    initial_state_len: 4,
+    next_state: [0, 0, 0, 0],
+    next_state_len: 4,
+    identity_len: id.length,
+    identity: id.padEnd(256, "0"),
+    tx_hash: tx.padEnd(64, "0"),
+    index: blob_index,
+    blob_number: 1,
+    blob_index,
+    blob_contract_name_len: "check_secret".length,
+    blob_contract_name: "check_secret".padEnd(256, "0"),
+    blob_capacity: 32,
+    blob_len: 32,
+    blob: (() => {
+      const padded = new Array(32).fill(0);
+      for (let i = 0; i < stored_hash.length; i++) {
+        padded[i] = stored_hash[i];
+      }
+      return padded;
+    })(),
+    tx_blob_count,
+    success: 1,
+  };
   const password: number[] = Array.from(pwd);
   assert(password.length == 32, "Password length is not 32 bytes");
-  assert(blob.length == blob_len, "Blob length is not 32 bytes");
 
-  return {
-    version,
-    initial_state,
-    initial_state_len,
-    next_state,
-    next_state_len,
-    identity,
-    identity_len,
-    tx_hash,
-    tx_hash_len,
-    index,
-    blob_number,
-    blob_index,
-    blob_contract_name_len,
-    blob_contract_name,
-    blob_capacity,
-    blob_len,
-    blob,
-    tx_blob_count,
-    success,
-    password,
-  };
+  return { hyli_output, password };
 };

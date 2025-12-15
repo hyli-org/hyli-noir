@@ -4,5 +4,6 @@ type = "bin"
 authors = [""]
 
 [dependencies]
-poseidon = { tag = "v0.1.1", git = "https://github.com/noir-lang/poseidon" }
-jwt = { tag = "saleel/deps-update-beta11", git = "https://github.com/zkemail/noir-jwt" }
+poseidon = { tag = "v0.2.0", git = "https://github.com/noir-lang/poseidon" }
+jwt = { git = "https://github.com/zkemail/noir-jwt", tag = "v0.5.1" }
+noir_utils = { path = "../noir-utils" }

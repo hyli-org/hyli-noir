@@ -1,6 +1,6 @@
 import { Barretenberg, Fr, reconstructHonkProof, UltraHonkBackend } from "@aztec/bb.js";
 import { CompiledCircuit, InputMap, Noir } from "@noir-lang/noir_js";
-import defaultCircuit from "../check-jwt/target/check_jwt.json";
+import defaultCircuit from "../target/check_jwt.json";
 import { assert, b64urlToU8, bytesToBigInt, flattenFieldsAsArray } from "./common";
 import { generateInputs } from "noir-jwt";
 import { Blob, NodeApiHttpClient } from "hyli";
@@ -31,21 +31,24 @@ export const build_proof_transaction = async (
   tx_blob_count: number,
   idToken: string,
   jwtPubkey: JsonWebKey,
-  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit
+  circuit: CompiledCircuit = defaultCircuit as CompiledCircuit,
+  jwtInputsOverride?: Awaited<ReturnType<typeof generateInputs>>
 ): Promise<{ contract_name: string; program_id: number[]; verifier: string; proof: number[] }> => {
-  if (!idToken || !jwtPubkey) {
+  if (!jwtInputsOverride && (!idToken || !jwtPubkey)) {
     throw new Error("[JWT Circuit] Proof generation failed: idToken and jwtPubkey are required");
   }
 
-  const jwtInputs = await generateInputs({
-    jwt: idToken,
-    pubkey: jwtPubkey,
-    shaPrecomputeTillKeys: ["email", "email_verified", "nonce"],
-    maxSignedDataLength: 640,
-  });
+  const jwtInputs =
+    jwtInputsOverride ??
+    (await generateInputs({
+      jwt: idToken,
+      pubkey: jwtPubkey,
+      shaPrecomputeTillKeys: ["email", "email_verified", "nonce"],
+      maxSignedDataLength: 640,
+    }));
 
   const inputs = {
-    ...generateProverData(identity, stored_hash, tx, blob_index, tx_blob_count),
+    hyli: generateHyli(identity, stored_hash, tx, blob_index, tx_blob_count),
     partial_data: jwtInputs.partial_data,
     partial_hash: jwtInputs.partial_hash,
     full_data_length: jwtInputs.full_data_length,
@@ -114,46 +117,38 @@ export async function jwk_pubkey_mod(jwk: JsonWebKey): Promise<bigint> {
  *
  * @returns {InputMap} Structured input data for the prover.
  */
-const generateProverData = (id: string, stored_hash: number[], tx_hash: string, blob_index: number, tx_blob_count: number): InputMap => {
-  const version = 1;
+const generateHyli = (id: string, stored_hash: number[], tx_hash: string, blob_index: number, tx_blob_count: number) => {
   const initial_state = [0, 0, 0, 0];
-  const initial_state_len = initial_state.length;
   const next_state = [0, 0, 0, 0];
-  const next_state_len = next_state.length;
-  const identity_len = id.length;
-  const identity = id.padEnd(256, "0");
-  const tx_hash_padded = tx_hash.padEnd(64, "0");
-  const tx_hash_len = tx_hash.length;
-  const index = blob_index;
-  const blob_number = 1;
-  const blob_contract_name_len = contract_name.length;
-  const blob_contract_name = contract_name.padEnd(256, "0");
-  const blob_capacity = 306;
+  const blob_capacity = 512;
   const blob_len = 306;
-  const blob: number[] = stored_hash;
-  const success = 1;
-  assert(blob.length == blob_len, `Blob length is ${blob.length} not 306 bytes`);
+
+  assert(stored_hash.length === blob_len, `Blob length is ${stored_hash.length} not ${blob_len} bytes`);
+
+  const padded_blob = new Array(512).fill(0);
+  for (let i = 0; i < stored_hash.length; i++) {
+    padded_blob[i] = stored_hash[i];
+  }
 
   return {
-    version,
+    version: 1,
     initial_state,
-    initial_state_len,
+    initial_state_len: initial_state.length,
     next_state,
-    next_state_len,
-    identity,
-    identity_len,
-    tx_hash: tx_hash_padded,
-    tx_hash_len,
-    index,
-    blob_number,
+    next_state_len: next_state.length,
+    identity: id.padEnd(256, "0"),
+    identity_len: id.length,
+    tx_hash: tx_hash.padEnd(64, "0"),
+    index: blob_index,
+    blob_number: 1,
     blob_index,
-    blob_contract_name_len,
-    blob_contract_name,
+    blob_contract_name_len: contract_name.length,
+    blob_contract_name: contract_name.padEnd(256, "0"),
     blob_capacity,
     blob_len,
-    blob,
+    blob: padded_blob,
     tx_blob_count,
-    success,
+    success: true,
   };
 };
 

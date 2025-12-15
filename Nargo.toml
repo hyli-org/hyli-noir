@@ -1,0 +1,3 @@
+[workspace]
+members = ["check-secret", "check-jwt", "noir-utils"]
+default-member = "check-secret"
