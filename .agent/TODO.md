@@ -3,7 +3,7 @@
 ## Overview
 Port ZKPassport Noir circuits to use HyliOutput<B> as public input instead of returning Field commitments.
 
-## Status: COMPLETE
+## Status: COMPLETE ✅ (Verified Dec 31, 2025)
 
 ### Phase 1: Template Modification in circuit-builder.ts
 - [x] Understand existing templates and patterns
@@ -32,6 +32,7 @@ Port ZKPassport Noir circuits to use HyliOutput<B> as public input instead of re
 - [x] Add local copy of noir-utils for path resolution
 - [x] Verify successful compilation with `nargo check`
 - [x] Update documentation
+- [x] Final verification that zkpassport helper directory removed
 
 ## Blob Size Requirements
 - DSC circuits: 64 bytes (comm_out + certificate_registry_root)
@@ -49,6 +50,25 @@ hyli-noir/
 │   ├── noir-utils/         # Local copy for path resolution
 │   ├── bin/                # 933 binary circuits
 │   └── lib/                # 21 library modules
-└── scripts/
-    └── circuit-builder.ts  # Circuit generator template
+├── scripts/
+│   └── circuit-builder.ts  # Circuit generator template
+├── check-jwt/              # Existing Hyli JWT circuit
+├── check-secret/           # Existing Hyli secret circuit
+└── noir-utils/             # Original HyliOutput struct definition
 ```
+
+## Verification Results
+- `nargo check` in zkpassport-circuits: ✅ PASSED
+- All 933 binary circuits use HyliOutput<B> as public input
+- All 21 library modules properly referenced
+- Blob contents validated in each circuit
+- Standard Hyli assertions included
+
+## Key Commits
+- `feat: add Hyli-compatible ZKPassport circuits` - Main implementation
+
+## Success Criteria Met
+1. ✅ All circuit templates in `circuit-builder.ts` generate Hyli-compatible circuits
+2. ✅ Static circuits manually ported to Hyli format
+3. ✅ `nargo check` succeeds for the workspace
+4. ✅ Implementation is in hyli-noir/zkpassport-circuits/ (not in zkpassport helper)
