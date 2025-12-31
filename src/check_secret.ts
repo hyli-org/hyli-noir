@@ -57,14 +57,9 @@ export const build_blob = async (identity: string, password: string): Promise<Bl
   let extended_id = new Uint8Array([...id_prefix, ...hashed_password_bytes]);
   const stored_hash = await sha256(extended_id);
 
-  const padded_blob = new Array(32).fill(0);
-  for (let i = 0; i < stored_hash.length; i++) {
-    padded_blob[i] = stored_hash[i];
-  }
-
   const secretBlob: Blob = {
     contract_name: "check_secret",
-    data: padded_blob,
+    data: Array.from(stored_hash),
   };
 
   return secretBlob;
@@ -190,6 +185,7 @@ const generateProverData = (
     tx_blob_count,
     success: 1,
   };
+  assert(hyli_output.blob.length === 32, "HyliOutput blob must be 32 bytes");
   const password: number[] = Array.from(pwd);
   assert(password.length == 32, "Password length is not 32 bytes");
 

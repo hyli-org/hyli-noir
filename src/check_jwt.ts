@@ -120,15 +120,10 @@ export async function jwk_pubkey_mod(jwk: JsonWebKey): Promise<bigint> {
 const generateHyli = (id: string, stored_hash: number[], tx_hash: string, blob_index: number, tx_blob_count: number) => {
   const initial_state = [0, 0, 0, 0];
   const next_state = [0, 0, 0, 0];
-  const blob_capacity = 512;
+  const blob_capacity = 306;
   const blob_len = 306;
 
   assert(stored_hash.length === blob_len, `Blob length is ${stored_hash.length} not ${blob_len} bytes`);
-
-  const padded_blob = new Array(512).fill(0);
-  for (let i = 0; i < stored_hash.length; i++) {
-    padded_blob[i] = stored_hash[i];
-  }
 
   return {
     version: 1,
@@ -146,7 +141,7 @@ const generateHyli = (id: string, stored_hash: number[], tx_hash: string, blob_i
     blob_contract_name: contract_name.padEnd(256, "0"),
     blob_capacity,
     blob_len,
-    blob: padded_blob,
+    blob: stored_hash,
     tx_blob_count,
     success: true,
   };

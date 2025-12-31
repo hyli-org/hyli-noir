@@ -310,12 +310,12 @@ const data = {
     "105",
     "232",
   ],
-  blob_capacity: "512",
+  blob_capacity: 306,
   blob_contract_name:
     "check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456check_mail123456",
   blob_contract_name_len: "10",
   blob_index: "0",
-  blob_len: "306",
+  blob_len: 306,
   blob_number: "1",
   identity:
     "myidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyidentitymyiden",

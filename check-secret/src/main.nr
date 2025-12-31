@@ -1,9 +1,8 @@
 // Simple Token Contract implementation in Noir
-use noir_utils::HyliOutput32 as HyliOutput;
+use noir_utils::HyliOutput;
 
 fn main(
-    // The version of the HyleOutput. This is unchecked for now.
-    hyli_output: HyliOutput,
+    hyli_output: HyliOutput<32>,
     // ------ Private inputs ------
     password: [u8; 32],
 ) {

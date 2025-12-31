@@ -1,5 +1,5 @@
 use jwt::JWT;
-use noir_utils::HyliOutput512 as HyliOutput;
+use noir_utils::HyliOutput;
 use poseidon::poseidon2::Poseidon2Hasher;
 use std::hash::Hasher;
 
@@ -29,7 +29,7 @@ global NONCE_LENGTH: u32 = 16;
  **/
 fn main(
     // Hyli output infos
-    hyli: HyliOutput,
+    hyli: HyliOutput<306>,
     // whats needed to build something that matches what is in blob field
     partial_data: BoundedVec<u8, MAX_PARTIAL_DATA_LENGTH>,
     partial_hash: [u32; 8],
@@ -66,7 +66,7 @@ fn main(
     let email_hash: Field = hasher.finish();
 
     // email_hash:nonce:pubkey
-    let mut built_blob: BoundedVec<u8, 512> = BoundedVec::new();
+    let mut built_blob: BoundedVec<u8, 306> = BoundedVec::new();
     built_blob.extend_from_array(email_hash.to_be_bytes::<32>());
     built_blob.extend_from_slice(":".as_bytes());
     built_blob.extend_from_slice(nonce.storage());
@@ -85,7 +85,7 @@ fn main(
     assert(hyli.next_state_len == 4);
     assert(hyli.initial_state == [0; 4]);
     assert(hyli.next_state == [0; 4]);
-    assert(hyli.blob_capacity == 512);
+    assert(hyli.blob_capacity == 306);
     assert(hyli.blob_len == 306);
     assert(hyli.blob_number == 1);
     assert(hyli.tx_blob_count >= 1);
