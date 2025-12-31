@@ -26,13 +26,12 @@ Port ZKPassport Noir circuits to use HyliOutput<B> as public input instead of re
 - [x] Update inclusion_check circuits
 - [x] Update facematch_ios circuits
 
-### Phase 3: Regenerate and Verify
-- [x] Run circuit generation
+### Phase 3: Restructure and Verify
+- [x] Move circuits from zkpassport/ to zkpassport-circuits/
 - [x] Fix path calculations for noir_utils dependencies
-- [x] Verify successful compilation (from parent directory)
-
-## Important Note
-Due to nargo's path resolution, you must run `nargo check` from the parent directory (`hyli-noir/`) not from inside `zkpassport/`.
+- [x] Add local copy of noir-utils for path resolution
+- [x] Verify successful compilation with `nargo check`
+- [x] Update documentation
 
 ## Blob Size Requirements
 - DSC circuits: 64 bytes (comm_out + certificate_registry_root)
@@ -41,3 +40,15 @@ Due to nargo's path resolution, you must run `nargo check` from the parent direc
 - Disclosure circuits: 96 bytes (param_commitment + nullifier_type + scoped_nullifier)
 - FaceMatch circuits: 96 bytes (param_commitment + nullifier_type + scoped_nullifier)
 - Outer circuits: 520 bytes (all public inputs)
+
+## Final Structure
+```
+hyli-noir/
+├── zkpassport-circuits/    # Hyli-compatible ZKPassport circuits
+│   ├── Nargo.toml          # Workspace (955 members)
+│   ├── noir-utils/         # Local copy for path resolution
+│   ├── bin/                # 933 binary circuits
+│   └── lib/                # 21 library modules
+└── scripts/
+    └── circuit-builder.ts  # Circuit generator template
+```

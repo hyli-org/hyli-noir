@@ -1,0 +1,153 @@
+use noir_utils::HyliOutput;
+use commitment::nullify;
+use data_check_expiry::check_expiry_from_date;
+use facematch::{
+    calculate_attestation_registry_leaf,
+    get_facematch_mode_from_client_data,
+    ios::{get_app_id_from_credential_tbs, verify_auth_data_and_client_data, verify_environment},
+    verify_credential_certificate,
+    verify_dg2_hash_in_client_data,
+    verify_intermediate_certificate,
+};
+use facematch::constants::{
+    APP_ID_MAX_LEN, ATTESTATION_KEY_TYPE_APPLE, AUTH_DATA_MAX_LEN, CLIENT_DATA_MAX_LEN,
+    CREDENTIAL_TBS_MAX_LEN,
+};
+use facematch::param_commit::calculate_param_commitment;
+use utils::{poseidon2_hash_packed, split_array, types::{DG1Data, MRZExpiryDate, SaltedValue}};
+mod tests;
+
+// Blob size for disclosure circuits: param_commitment (32) + nullifier_type (32) + nullifier (32) = 96 bytes
+global DISCLOSURE_BLOB_SIZE: u32 = 96;
+
+fn main(
+    hyli: HyliOutput<96>,
+    comm_in: Field,
+    current_date: u64,
+    salted_private_nullifier: SaltedValue<Field>,
+    salted_expiry_date: SaltedValue<MRZExpiryDate>,
+    salted_dg1: SaltedValue<DG1Data>,
+    salted_dg2_hash: SaltedValue<Field>,
+    salted_dg2_hash_type: SaltedValue<u32>,
+    // @committed
+    // Hash of root_key (the attestation registry leaf) is commitment to (via parameter commitment) and can be verified outside the circuit
+    root_key: [u8; 96],
+    intermediate_key: [u8; 96],
+    intermediate_tbs: [u8; 500],
+    intermediate_sig: [u8; 96],
+    credential_tbs: [u8; CREDENTIAL_TBS_MAX_LEN],
+    credential_sig: [u8; 96],
+    auth_data: [u8; AUTH_DATA_MAX_LEN],
+    client_data: [u8; CLIENT_DATA_MAX_LEN],
+    // @committed
+    // environment is commitment to (via parameter commitment) and can be verified outside the circuit
+    environment: u8, // APP_ATTEST_ENV_DEVELOPMENT (0) or APP_ATTEST_ENV_PRODUCTION (1)
+    // @committed
+    // Hash of app_id is commitment to (via parameter commitment) and can be verified outside the circuit
+    app_id: [u8; APP_ID_MAX_LEN],
+    // @committed
+    // facematch_mode is commitment to (via parameter commitment) and can be verified outside the circuit
+    facematch_mode: u8, // FACEMATCH_MODE_REGULAR (1) or FACEMATCH_MODE_STRICT (2)
+    nullifier_secret: Field,
+    service_scope: Field,
+    service_subscope: Field,
+) {
+    // Check the ID is not expired
+    check_expiry_from_date(salted_expiry_date.value, current_date);
+
+    // Split the root and intermediate key into x and y coordinates
+    let (root_key_x, root_key_y) = split_array(root_key);
+    let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);
+
+    let root_key_leaf = calculate_attestation_registry_leaf(ATTESTATION_KEY_TYPE_APPLE, root_key);
+    // Verify the intermediate certificate was signed by the root key
+    // and the intermediate public key is in the intermediate certificate TBS
+    assert(
+        verify_intermediate_certificate(
+            root_key_x,
+            root_key_y,
+            intermediate_key_x,
+            intermediate_key_y,
+            intermediate_tbs,
+            intermediate_sig,
+        ),
+        "Failed to verify intermediate certificate",
+    );
+
+    // Verify the credential certificate was signed by the intermediate key
+    let (intermediate_key_x, intermediate_key_y) = split_array(intermediate_key);
+    assert(
+        verify_credential_certificate(
+            intermediate_key_x,
+            intermediate_key_y,
+            credential_tbs,
+            credential_sig,
+        ),
+        "Failed to verify credential certificate",
+    );
+
+    // Verify the integrity of auth_data and client_data using the credential certificate TBS nonce
+    assert(
+        verify_auth_data_and_client_data(credential_tbs, auth_data, client_data),
+        "Failed to verify auth_data and client_data",
+    );
+
+    // Verify the environment in auth_data matches the expected environment
+    assert(
+        verify_environment(environment, auth_data),
+        "Failed to verify environment: AAGUID mismatch",
+    );
+
+    // Verify the app ID in the credential certificate TBS matches the expected app ID
+    let (tbs_app_id, app_id_length): ([u8; APP_ID_MAX_LEN], u32) =
+        get_app_id_from_credential_tbs(credential_tbs);
+    assert(tbs_app_id == app_id, "Failed to verify app_id");
+
+    // Verify the facematch mode in client_data matches the expected facematch mode
+    assert(
+        get_facematch_mode_from_client_data(client_data) == facematch_mode,
+        "Failed to verify facematch_mode in client_data",
+    );
+
+    // Verify the normalized dg2_hash in client_data matches the expected normalized dg2_hash
+    assert(
+        verify_dg2_hash_in_client_data(salted_dg2_hash.value, client_data),
+        "Failed to verify dg2_hash in client_data",
+    );
+
+    let (nullifier, nullifier_type) = nullify(
+        comm_in,
+        salted_dg1,
+        salted_expiry_date,
+        salted_dg2_hash,
+        salted_dg2_hash_type,
+        salted_private_nullifier,
+        service_scope,
+        service_subscope,
+        nullifier_secret,
+    );
+
+    let app_id_hash = poseidon2_hash_packed(app_id, app_id_length);
+    // Since the integrity public key hash is only for Android, we set it to 0 for iOS
+    let param_commitment =
+        calculate_param_commitment(root_key_leaf, environment, app_id_hash, 0, facematch_mode);
+
+    // Build blob: param_commitment (32) + nullifier_type (32) + nullifier (32) = 96 bytes
+    let mut blob: BoundedVec<u8, DISCLOSURE_BLOB_SIZE> = BoundedVec::new();
+    blob.extend_from_array(param_commitment.to_be_bytes::<32>());
+    blob.extend_from_array(nullifier_type.to_be_bytes::<32>());
+    blob.extend_from_array(nullifier.to_be_bytes::<32>());
+
+    // Validate HyliOutput
+    assert(hyli.blob == blob.storage(), "blob mismatch");
+    assert(hyli.success == true);
+    assert(hyli.version == 1);
+    assert(hyli.initial_state_len == 4);
+    assert(hyli.next_state_len == 4);
+    assert(hyli.initial_state == [0; 4]);
+    assert(hyli.next_state == [0; 4]);
+    assert(hyli.blob_capacity == DISCLOSURE_BLOB_SIZE);
+    assert(hyli.blob_len == DISCLOSURE_BLOB_SIZE);
+    assert(hyli.blob_number == 1);
+    assert(hyli.tx_blob_count >= 1);
+}
