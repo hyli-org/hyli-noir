@@ -6,7 +6,6 @@ next_state = [0, 0, 0, 0]
 next_state_len = 4
 identity_len = 13
 tx_hash = "3b8f91a7ea6e74505d473b95080e6f51a60e2bacaf0ce4472462c2718b7428f8"
-tx_hash_len = 64
 index = 0
 blob_number = 1
 blob_index = 0

@@ -1,6 +1,6 @@
 import { check_secret } from "./lib";
 
-const data = {
+const hyli_output = {
   version: 1,
   initial_state: [0, 0, 0, 0],
   initial_state_len: 4,
@@ -10,7 +10,6 @@ const data = {
     "myuser@wallet000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
   identity_len: 13,
   tx_hash: "560fe86f1f270d81ab77ecb4e3841bb6c289efcfc37e8c255ad03a26388ad6be",
-  tx_hash_len: 64,
   index: 0,
   blob_number: 1,
   blob_index: 0,
@@ -19,20 +18,22 @@ const data = {
     "check_secret0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
   blob_capacity: 32,
   blob_len: 32,
-  blob: [
-    61, 45, 229, 53, 152, 5, 168, 41, 160, 224, 204, 125, 255, 189, 9, 190, 202, 220, 0, 188, 29, 40, 150, 56, 211, 46, 112, 227, 241, 212,
-    143, 85,
-  ],
+  blob: (() => {
+    const base = [
+      61, 45, 229, 53, 152, 5, 168, 41, 160, 224, 204, 125, 255, 189, 9, 190, 202, 220, 0, 188, 29, 40, 150, 56, 211, 46, 112, 227, 241, 212, 143, 85,
+    ];
+    const padded = new Array(32).fill(0);
+    for (let i = 0; i < base.length; i++) {
+      padded[i] = base[i];
+    }
+    return padded;
+  })(),
   tx_blob_count: 3,
   success: 1,
-  password: [
-    69, 84, 5, 22, 177, 66, 178, 236, 175, 84, 177, 247, 3, 46, 43, 82, 195, 109, 147, 119, 183, 207, 192, 161, 234, 85, 209, 64, 155, 3,
-    244, 249,
-  ],
 };
 
 const identity = "myuser@wallet";
 const salted_password = "mypassword123:5bcd1emg48e";
 const txHash = "241cc3c3c04120a6a55dbc852b1fa3f5f84589b9d56671fc503524435cd2b2d4";
-const blobLength = 3;
-const proofTx = await check_secret.build_proof_transaction(identity, salted_password, txHash, 0, blobLength);
+
+await check_secret.build_proof_transaction(identity, salted_password, txHash, 0, hyli_output.tx_blob_count);

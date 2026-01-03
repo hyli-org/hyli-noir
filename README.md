@@ -7,6 +7,7 @@ A TypeScript/JavaScript library providing Noir-based zero-knowledge proof functi
 - 🔐 **Zero-Knowledge Secret Verification**: Generate proofs that demonstrate knowledge of a password without revealing it
 - 🛡️ **Identity-Based Authentication**: Combine user identity with password hashing for secure authentication
 - 📦 **Blob Transaction Support**: Create and manage blob transactions containing encrypted secrets
+- 🪪 **JWT Proofs**: Build proofs from signed JWT claims via the `check_jwt` circuit
 - ⚡ **Noir Circuit Integration**: Built on Noir's zero-knowledge proof system with UltraHonk backend
 - 🔧 **TypeScript Support**: Full TypeScript definitions and type safety
 
@@ -21,7 +22,7 @@ npm install hyli-noir
 This library requires the following peer dependencies:
 
 ```bash
-npm install @aztec/bb.js@0.82.2 @noir-lang/noir_js@1.0.0-beta.2 @noir-lang/noir_wasm@1.0.0-beta.2
+npm install @aztec/bb.js@2.0.3 @noir-lang/noir_js@1.0.0-beta.14 @noir-lang/noir_wasm@1.0.0-beta.14
 ```
 
 ## Quick Start
@@ -103,23 +104,17 @@ Registers the Noir contract with the node if not already registered.
 - `node` - The NodeApiHttpClient instance
 - `circuit` - Optional compiled Noir circuit (defaults to check_secret circuit)
 
-### Utility Functions
+### Noir Utilities (`noir_utils`)
 
-#### `assert(condition: boolean, message: string): void`
+- `sha256(data: Uint8Array): Promise<Uint8Array>`: SHA-256 helper used by the circuits
+- `stringToBytes(input: string): Uint8Array`: UTF-8 encoding helper
+- `encodeToHex(data: Uint8Array): string`: Hex encoding helper
+- `flattenFieldsAsArray(fields: string[]): Uint8Array`: Flattens Noir public inputs for proof reconstruction
+- `assert(condition, message)`: Simple runtime assertion
 
-Throws an error if the condition is false.
+### Noir Utils Circuit Library
 
-#### `sha256(data: Uint8Array): Promise<Uint8Array>`
-
-Computes SHA-256 hash of the input data.
-
-#### `stringToBytes(input: string): Uint8Array`
-
-Converts a string to Uint8Array using UTF-8 encoding.
-
-#### `encodeToHex(data: Uint8Array): string`
-
-Converts Uint8Array to hex string representation.
+A companion Noir library lives in `./noir-utils` exposing `HyliOutput` structs with common blob sizes (32/64/128/256/512/1024/2048). Add it as a Nargo dependency to reuse the shared Hyli I/O schema in custom circuits.
 
 ## How It Works
 

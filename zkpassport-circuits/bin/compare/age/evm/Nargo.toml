@@ -1,0 +1,12 @@
+[package]
+name = "compare_age_evm"
+type = "bin"
+authors = ["Theo Madzou", "Michael Elliot"]
+compiler_version = ">=1.0.0"
+
+[dependencies]
+noir_utils = { path = "../../../../noir-utils" }
+compare_age = { path = "../../../../lib/compare/age" }
+commitment = { path = "../../../../lib/commitment/scoped-nullifier" }
+utils = { path = "../../../../lib/utils" }
+data_check_expiry = { path = "../../../../lib/data-check/expiry" }
