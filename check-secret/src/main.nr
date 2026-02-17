@@ -39,10 +39,18 @@ fn main(
     // ------ Private inputs ------
     password: [u8; 32],
 ) {
-    let mut id: BoundedVec<u8, 256> =
-        BoundedVec::from_parts(identity.as_bytes(), identity_len as u32);
-    id.extend_from_slice(":".as_bytes());
-    id.extend_from_slice(password);
+    let identity_bytes = identity.as_bytes();
+    let mut id_array: [u8; 289] = [0; 289];
+
+    for i in 0..256 {
+        if i < identity_len as u32 {
+            id_array[i] = identity_bytes[i];
+        }
+    }
+
+    let mut id: BoundedVec<u8, 289> = BoundedVec::from_parts(id_array, identity_len as u32);
+    id.extend_from_array([58]); // ':'
+    id.extend_from_array(password);
 
     println(f"Identity: {identity}");
     println(f"Password: {password}");
