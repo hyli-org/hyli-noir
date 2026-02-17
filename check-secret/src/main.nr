@@ -39,7 +39,8 @@ fn main(
     // ------ Private inputs ------
     password: [u8; 32],
 ) {
-    let mut id: BoundedVec<u8, 256> = BoundedVec::from_parts(identity.as_bytes(), identity_len as u32);
+    let mut id: BoundedVec<u8, 256> =
+        BoundedVec::from_parts(identity.as_bytes(), identity_len as u32);
     id.extend_from_slice(":".as_bytes());
     id.extend_from_slice(password);
 
@@ -48,7 +49,7 @@ fn main(
     println(f"extended id: {id}");
 
     // Hash the combined input using SHA-256
-    let input_hash = sha256::sha256_var(id.storage(), identity_len as u64 + 1 + 32);
+    let input_hash = sha256::sha256_var(id.storage(), identity_len as u32 + 1 + 32);
     println(f"Input Hash: {input_hash}");
 
     assert(input_hash == blob);
