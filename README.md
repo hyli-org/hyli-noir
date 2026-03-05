@@ -21,7 +21,7 @@ npm install hyli-noir
 This library requires the following peer dependencies:
 
 ```bash
-npm install @aztec/bb.js@0.82.2 @noir-lang/noir_js@1.0.0-beta.2 @noir-lang/noir_wasm@1.0.0-beta.2
+npm install @aztec/bb.js@0.82.2 @noir-lang/noir_js@1.0.0-beta.18 @noir-lang/noir_wasm@1.0.0-beta.18
 ```
 
 ## Quick Start

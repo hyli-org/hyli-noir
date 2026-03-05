@@ -1,0 +1,3 @@
+[workspace]
+members = ["check-jwt", "check-secret", "hyli-noir-sdk"]
+default-member = "check-secret"
