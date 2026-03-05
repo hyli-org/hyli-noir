@@ -1,0 +1,5 @@
+[package]
+name = "hyli_noir_sdk"
+type = "lib"
+
+[dependencies]
