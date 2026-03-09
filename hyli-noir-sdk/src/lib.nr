@@ -1,0 +1,32 @@
+pub struct BlobInput<let NAME_MAX: u32, let DATA_MAX: u32> {
+    pub index: u32,
+    pub contract_name_len: u32,
+    pub contract_name: str<NAME_MAX>,
+    pub data_len: u32,
+    pub data: [u8; DATA_MAX],
+}
+
+pub struct HyliOutput<let INITIAL_STATE_MAX: u32, let NEXT_STATE_MAX: u32, let IDENTITY_MAX: u32, let BLOBS_MAX: u32, let BLOB_NAME_MAX: u32, let BLOB_DATA_MAX: u32, let PROGRAM_OUTPUT_MAX: u32> {
+    pub version: u32,
+    pub initial_state_len: u32,
+    pub initial_state_max: u32,
+    pub initial_state: [u8; INITIAL_STATE_MAX],
+    pub next_state_len: u32,
+    pub next_state_max: u32,
+    pub next_state: [u8; NEXT_STATE_MAX],
+    pub identity_len: u32,
+    pub identity_max: u32,
+    pub identity: str<IDENTITY_MAX>,
+    pub index: u32,
+    pub blob_count: u32,
+    pub blob_slots: u32,
+    pub blob_name_max: u32,
+    pub blob_data_max: u32,
+    pub blobs: [BlobInput<BLOB_NAME_MAX, BLOB_DATA_MAX>; BLOBS_MAX],
+    pub tx_blob_count: u32,
+    pub tx_hash: [u8; 32],
+    pub success: bool,
+    pub program_outputs_max: u32,
+    pub program_outputs_len: u32,
+    pub program_outputs: [u8; PROGRAM_OUTPUT_MAX],
+}
